@@ -2,6 +2,7 @@ model:
   batch_size: 32
   block_size: 8
   n_embed: 32
+  n_heads: 4
 
 training:
   max_iters: 5000
