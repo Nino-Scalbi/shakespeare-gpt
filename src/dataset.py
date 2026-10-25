@@ -17,7 +17,7 @@ decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integ
 
 
 #split data into train and validation sets
-def split_data(data, train_ratio=0.9):
+def split_data(train_ratio=0.9):
     data = torch.tensor(encode(text), dtype=torch.long)
     n = int(train_ratio*len(data))
     train_data = data[:n]
@@ -26,7 +26,10 @@ def split_data(data, train_ratio=0.9):
 
 
 # data loading
-def get_batch(split, train_data, val_data, batch_size, block_size):
+def get_batch(split, data, config):
+    train_data, val_data = data
+    block_size = config["block_size"]
+    batch_size = config["batch_size"]
     data = train_data if split == 'train' else val_data
     ix = torch.randint(len(data) - block_size, (batch_size, ))
     x = torch.stack([data[i:i+block_size] for i in ix])

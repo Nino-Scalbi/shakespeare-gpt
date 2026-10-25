@@ -1,14 +1,14 @@
 import yaml
 import torch
 from src.model import GPT
-from src.dataset import get_batch
+from src.dataset import get_batch, split_data, decode
 
 # Set device
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 # Load config
-with open("configs/default.yaml") as f:
+with open("configs/default_config.yaml") as f:
     config = yaml.safe_load(f)
 
 max_iters = config["training"]["max_iters"]
@@ -19,13 +19,13 @@ eval_iters = config["training"]["eval_iters"]
 
 
 @torch.no_grad()
-def estimate_loss():
+def estimate_loss(data, config):
     out = {}
     model.eval()   # Turn the model into evaluation mode
     for split in ['train', 'val']:
         losses = torch.zeros(eval_iters)
         for k in range(eval_iters):
-            X, Y = get_batch(split)
+            X, Y = get_batch(split=split, data=data, config=config)
             X, Y = X.to(device), Y.to(device)
             logits, loss = model(X, Y)
             losses[k] = loss.item()
@@ -34,11 +34,11 @@ def estimate_loss():
     return out
 
 
-
+# import the data
+data = split_data(train_ratio=config["training"]["train_ratio"])
 
 model = GPT(config['model'])
 m = model.to(device)
-
 
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(m.parameters(), lr=learning_rate)
@@ -48,11 +48,13 @@ optimizer = torch.optim.AdamW(m.parameters(), lr=learning_rate)
 for iter in range(max_iters):
 
     if iter % eval_interval == 0:
-        losses = estimate_loss()
+        losses = estimate_loss(data=data, config=config["model"])
         print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
     #sample a batch of the data
-    xb, yb = get_batch('train')
+    xb, yb = get_batch(split='train', 
+                       data = data,
+                       config = config["model"])
     xb, yb = xb.to(device), yb.to(device)
 
     # evaluate the loss
@@ -60,3 +62,8 @@ for iter in range(max_iters):
     optimizer.zero_grad(set_to_none=True)
     loss.backward()
     optimizer.step()
+
+
+# generate from the model
+context = torch.zeros((1, 1), dtype=torch.long, device=device)
+print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))

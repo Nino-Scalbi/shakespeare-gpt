@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from dataset import vocab_size
+from src.dataset import vocab_size
 
 
 class Head(nn.Module):
@@ -9,7 +9,7 @@ class Head(nn.Module):
 
     def __init__(self, config, head_size):
         super().__init__()
-        n_embd = config["n_emnd"]
+        n_embd = config["n_embd"]
         block_size = config["block_size"]
         self.key = nn.Linear(n_embd, head_size, bias=False)
         self.query = nn.Linear(n_embd, head_size, bias=False)
@@ -37,7 +37,7 @@ class MultiHeadAttention(nn.Module):
 
     def __init__(self, config, head_size):
         super().__init__()
-        n_embd = config["n_emnd"]
+        n_embd = config["n_embd"]
         n_heads = config["n_heads"]
         self.heads = nn.ModuleList([Head(config=config, head_size=head_size) for _ in range(n_heads)])
         self.proj = nn.Linear(n_heads * head_size, n_embd)
@@ -70,7 +70,7 @@ class Block(nn.Module):
 
     def __init__(self, config):
         super().__init__()
-        n_embd = config["n_emnd"]
+        n_embd = config["n_embd"]
         n_heads = config["n_heads"]
         head_size = n_embd // n_heads  # creating mutltiple parallel channels of self-attention instead of a single one of n_embd attention
         self.sa = MultiHeadAttention(config=config, head_size=head_size)
