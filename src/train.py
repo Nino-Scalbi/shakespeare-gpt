@@ -1,13 +1,20 @@
+import yaml
 import torch
 from src.model import GPT
 from src.dataset import get_batch
 
+# Set device
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-max_iters = 5000
-eval_interval = 300
-learning_rate = 1e-3
-eval_iters = 200
+
+# Load config
+with open("configs/default.yaml") as f:
+    config = yaml.safe_load(f)
+
+max_iters = config["training"]["max_iters"]
+eval_interval = config["training"]["eval_interval"]
+learning_rate = config["training"]["learning_rate"]
+eval_iters = config["training"]["eval_iters"]
 
 
 
@@ -29,7 +36,7 @@ def estimate_loss():
 
 
 
-model = GPT()
+model = GPT(config['model'])
 m = model.to(device)
 
 
