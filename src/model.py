@@ -4,23 +4,13 @@ from torch.nn import functional as F
 from dataset import vocab_size
 
 
-
-# hyperparameters
-batch_size = 32
-block_size = 8 # Maximum context length
-max_iters = 5000
-eval_interval = 300
-learning_rate = 1e-3
-eval_iters = 200
-n_embd = 32
-# ----------------
-
-
 class Head(nn.Module):
     """ one head of self-attention"""
 
-    def __init__(self, head_size):
+    def __init__(self, config, head_size):
         super().__init__()
+        n_embd = config["n_emnd"]
+        block_size = config["block_size"]
         self.key = nn.Linear(n_embd, head_size, bias=False)
         self.query = nn.Linear(n_embd, head_size, bias=False)
         self.value = nn.Linear(n_embd, head_size, bias=False)
@@ -45,10 +35,12 @@ class Head(nn.Module):
 class MultiHeadAttention(nn.Module):
     """multiple parallel heads of self-attention which act independently"""
 
-    def __init__(self, num_heads, head_size):
+    def __init__(self, config, head_size):
         super().__init__()
-        self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
-        self.proj = nn.Linear(num_heads * head_size, n_embd)
+        n_embd = config["n_emnd"]
+        n_heads = config["n_heads"]
+        self.heads = nn.ModuleList([Head(config=config, head_size=head_size) for _ in range(n_heads)])
+        self.proj = nn.Linear(n_heads * head_size, n_embd)
 
     def forward(self, x):
         out = torch.concat([h(x) for h in self.heads], dim=-1) # Concatenate all the outputs of the different heads into a single tensor along the channel dimension
@@ -60,12 +52,12 @@ class MultiHeadAttention(nn.Module):
 class FeedForward(nn.Module):
     """A simple linear layer followed by a ReLu non-linearity"""
 
-    def __init__(self, n_embd):
+    def __init__(self, n_embd, n_heads):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(n_embd, 4 * n_embd), # The 4 * ... is due to the paper (Attention is all you need)
+            nn.Linear(n_embd, n_heads * n_embd), # The 4 * ... is due to the paper (Attention is all you need)
             nn.ReLU(),
-            nn.Linear(4 * n_embd, n_embd), # Projection Layer down to the residual pathway
+            nn.Linear(n_heads * n_embd, n_embd), # Projection Layer down to the residual pathway
         )
 
     def forward(self, x):
@@ -76,34 +68,38 @@ class FeedForward(nn.Module):
 class Block(nn.Module):
     """Transformer Block: communication followed by computation"""
 
-    def __init__(self, n_embd, n_head):
+    def __init__(self, config):
         super().__init__()
-        head_size = n_embd // n_head  # creating mutltiple parallel channels of self-attention instead of a single one of n_embd attention
-        self.sa = MultiHeadAttention(num_heads=n_head, head_size=head_size)
-        self.ffwd = FeedForward(n_embd)
+        n_embd = config["n_emnd"]
+        n_heads = config["n_heads"]
+        head_size = n_embd // n_heads  # creating mutltiple parallel channels of self-attention instead of a single one of n_embd attention
+        self.sa = MultiHeadAttention(config=config, head_size=head_size)
+        self.ffwd = FeedForward(n_embd, n_heads=n_heads)
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
 
     def forward(self, x):
-        x = x + self.sa(self.ln1(x)) # apply multiple parallel heads of self-attention (B, T, C), the x + is due to a skip-connection or residual connecton to help stabilize the learning, adding LayerNorm beofre each layer (different than proposed in paper)
-        x = x + self.ffwd(self.ln2(x)) # Apply FeedFoward Layer to learn on the derived attention info, (B, T, C), the x + is due to a skip-connection or residual connecton to help stabilize the learning, adding LayerNorm beofre each layer (different than proposed in paper)
+        x = x + self.sa(self.ln1(x))
+        x = x + self.ffwd(self.ln2(x))
         return x
 
 
 
 class GPT(nn.Module):
 
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
+        n_embd = config["n_embd"]
+        self._block_size = config["block_size"]
         # each token directly reads off the logits fro the next token from a lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         # Embedding also the possible position (block_size)
-        self.position_embedding_table = nn.Embedding(block_size, n_embd)
+        self.position_embedding_table = nn.Embedding(self._block_size, n_embd)
         # 4 Transformer Blocks
         self.blocks = nn.Sequential(
-            Block(n_embd=n_embd, n_head=4),
-            Block(n_embd=n_embd, n_head=4),
-            Block(n_embd=n_embd, n_head=4),
+            Block(config),
+            Block(config),
+            Block(config),
             nn.LayerNorm(n_embd),
 
         )
@@ -135,7 +131,7 @@ class GPT(nn.Module):
         # idx is (B, T) array of indices in the current context
         for _ in range(max_new_tokens):
             # crop ids to the last block_size tokens
-            idx_cond = idx[:, -block_size:]
+            idx_cond = idx[:, -self._block_size:]
             # get the predicions
             logits, loss = self(idx_cond) # logits (B, T, C)
             # focus only on the last timestep
