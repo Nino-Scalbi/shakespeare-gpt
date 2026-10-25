@@ -1,7 +1,7 @@
 import torch
-batch_size = 32
-block_size = 8 
 
+
+# Load the data
 with open('data/input.txt', 'r', encoding='utf-8') as f:
     text = f.read()
 
