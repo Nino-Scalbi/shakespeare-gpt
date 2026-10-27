@@ -1,12 +1,14 @@
 model:
-  batch_size: 32
-  block_size: 8
-  n_embd: 32
-  n_heads: 4
+  batch_size: 64 # How many parallel batches do we process in parallel
+  block_size: 256 # what is the maximum context length for predicitions
+  n_embd: 384 # the dimension of the embedding
+  n_heads: 6 # How many parallel heads in the MultiHeadAttention (6 heads with 64 dim)
+  dropout: 0.2 # Dropout probability
+  n_layer: 6 # How many Transformer blocks in sequence
 
 training:
   max_iters: 5000
-  eval_interval: 300
-  learning_rate: 1.0e-3
+  eval_interval: 5000
+  learning_rate: 3.0e-4
   eval_iters: 200
   train_ratio: 0.9
