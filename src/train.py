@@ -1,13 +1,24 @@
+import logging
 import yaml
 import torch
 from src.model import GPT
 from src.dataset import get_batch, split_data, decode
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+logger = logging.getLogger(__name__)
 
 # Set device
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 # Load config
+logger.info("Loading Config")
 with open("configs/default_config.yaml") as f:
     config = yaml.safe_load(f)
 
@@ -35,8 +46,10 @@ def estimate_loss(data, config):
 
 
 # import the data
+logger.info("Import Data")
 data = split_data(train_ratio=config["training"]["train_ratio"])
 
+logger.info("Create Model")
 model = GPT(config['model'])
 m = model.to(device)
 
@@ -45,11 +58,12 @@ optimizer = torch.optim.AdamW(m.parameters(), lr=learning_rate)
 
 
 # Training loop
+logger.info(f"Start Training Loop ({max_iters} iterations)")
 for iter in range(max_iters):
 
     if iter % eval_interval == 0:
         losses = estimate_loss(data=data, config=config["model"])
-        print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+        logger.info(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
 
     #sample a batch of the data
     xb, yb = get_batch(split='train', 
@@ -62,6 +76,8 @@ for iter in range(max_iters):
     optimizer.zero_grad(set_to_none=True)
     loss.backward()
     optimizer.step()
+
+logger.info("Training Complete")
 
 
 # generate from the model
