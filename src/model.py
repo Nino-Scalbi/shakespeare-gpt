@@ -1,5 +1,7 @@
+import os
 import torch
 import torch.nn as nn
+from pathlib import Path
 from torch.nn import functional as F
 from src.dataset import vocab_size
 
@@ -144,3 +146,23 @@ class GPT(nn.Module):
             # append sampled index to the running sequence
             idx = torch.cat((idx, idx_next), dim=1) # (B, T+1)
         return idx
+
+
+    def save_weights(self, step, output_dir):
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        weights = {
+            name: tensor.detach.cpu().clone()
+            for name, tensor in self.state_dict().items()
+        }
+
+        path = output_dir / f"step_{step:06d}.pt"
+        tmp_path = path.with_suffix(".tmp")
+
+        torch.save({
+            "step": step,
+            "model": weights,
+        }, tmp_path)
+
+        os.repace(tmp_path, path)
