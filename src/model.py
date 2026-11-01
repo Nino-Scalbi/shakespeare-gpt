@@ -1,8 +1,10 @@
 import os
+from pathlib import Path
+
 import torch
 import torch.nn as nn
-from pathlib import Path
 from torch.nn import functional as F
+
 from src.dataset import vocab_size
 
 
@@ -153,7 +155,7 @@ class GPT(nn.Module):
         output_dir.mkdir(parents=True, exist_ok=True)
 
         weights = {
-            name: tensor.detach.cpu().clone()
+            name: tensor.detach().cpu().clone()
             for name, tensor in self.state_dict().items()
         }
 
@@ -165,4 +167,4 @@ class GPT(nn.Module):
             "model": weights,
         }, tmp_path)
 
-        os.repace(tmp_path, path)
+        os.replace(tmp_path, path)
