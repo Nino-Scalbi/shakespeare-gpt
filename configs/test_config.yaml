@@ -1,0 +1,19 @@
+# Smoke test config: tiny model and a few steps, only meant to exercise the whole pipeline
+# (training, metrics logging, weight snapshots) in seconds, not to train anything useful.
+model:
+  batch_size: 8 # How many parallel batches do we process in parallel
+  block_size: 32 # what is the maximum context length for predicitions
+  n_embd: 64 # the dimension of the embedding
+  n_heads: 2 # How many parallel heads in the MultiHeadAttention (2 heads with 32 dim)
+  dropout: 0.2 # Dropout probability
+  n_layer: 2 # How many Transformer blocks in sequence
+
+training:
+  max_iters: 20
+  eval_interval: 10
+  log_interval: 5 # Regular logging at steps 5, 10, 15, 20 (in addition to the save steps)
+  save_interval: 10 # Metrics are persisted at steps 10 and 20, and again after the loop
+  learning_rate: 3.0e-4
+  eval_iters: 5
+  train_ratio: 0.9
+  n_save_steps: 6 # Number of steps where weights are saved (geometric spacing, plus step 0)
