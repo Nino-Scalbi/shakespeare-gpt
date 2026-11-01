@@ -8,7 +8,6 @@ model:
 
 training:
   max_iters: 5000
-  eval_interval: 500
   log_interval: 100
   save_interval: 1000
   learning_rate: 3.0e-4

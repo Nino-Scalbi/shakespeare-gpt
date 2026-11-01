@@ -10,7 +10,6 @@ model:
 
 training:
   max_iters: 20
-  eval_interval: 10
   log_interval: 5 # Regular logging at steps 5, 10, 15, 20 (in addition to the save steps)
   save_interval: 10 # Metrics are persisted at steps 10 and 20, and again after the loop
   learning_rate: 3.0e-4
