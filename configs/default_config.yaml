@@ -11,6 +11,6 @@ training:
   log_interval: 100
   save_interval: 1000
   learning_rate: 3.0e-4
-  eval_iters: 200
+  eval_max_windows: null # Max number of fixed eval windows per split (null = full pass over the validation split)
   train_ratio: 0.9
   n_save_steps: 20 # Number of steps where weights are saved
