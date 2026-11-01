@@ -6,7 +6,9 @@ import numpy as np
 import pandas as pd
 import torch
 
-from src.dataset import get_batch
+from src.dataset import (get_batch,
+                         get_windows
+                         )
 
 
 def get_save_steps(max_steps, n_steps):
@@ -82,3 +84,35 @@ def estimate_loss(model, data, config, device, eval_iters):
         out[split] = losses.mean().item()
     model.train(was_training)
     return out
+
+
+@torch.no_grad()
+def evaluate(model, data, starts, block_size, batch_size, device):
+    """Token-weighted mean loss of the model on fixed windows of one split.
+
+    Args:
+        model: The GPT model. It is put in eval mode and restored afterwards.
+        data: 1-D tensor of token ids for ONE split (train or val).
+        starts: 1-D tensor of window start indices into data, e.g. from make_eval_starts.
+        block_size: Number of tokens per window.
+        batch_size: Number of windows per forward pass. Does not change the result.
+        device: Device to run the model on.
+
+    Returns:
+        Mean cross-entropy per predicted token, as a float.
+    """
+    was_training = model.training
+    model.eval()   # Turn the model into evaluation mode
+
+    total_loss = 0.0
+    total_tokens = 0
+    for batch_starts in starts.split(batch_size):
+        X, Y = get_windows(data, batch_starts, block_size)
+        X, Y = X.to(device), Y.to(device)
+        _, batch_loss = model(X, Y)
+        # batch_loss is a mean over the batch's tokens: weight it by the token count
+        total_loss += batch_loss.item() * Y.numel()
+        total_tokens += Y.numel()
+
+    model.train(was_training)
+    return total_loss / total_tokens
