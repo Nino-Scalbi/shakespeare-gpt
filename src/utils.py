@@ -1,9 +1,12 @@
 import os
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import torch
-from pathlib import Path
+
 from src.dataset import get_batch
+
 
 def get_save_steps(max_steps, n_steps):
     save_steps = set(
@@ -15,10 +18,13 @@ def get_save_steps(max_steps, n_steps):
 
 
 def get_paths(cwd, run_id):
+    cwd = Path(cwd)
+    run_dir = cwd / "runs" / run_id
     paths = {
         "dataset": cwd / "dataset",
-        "run": cwd / "run_id",
-        "weights": cwd / "run_id" / "weights"
+        "run": run_dir,
+        "weights": run_dir / "weights",
+        "metrics": run_dir / "metrics.parquet"
     }
     return paths
 
