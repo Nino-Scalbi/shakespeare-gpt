@@ -39,7 +39,6 @@ def main(run_id, config_path):
         config = yaml.safe_load(f)
 
     max_iters = config["training"]["max_iters"]
-    eval_interval = config["training"]["eval_interval"]
     log_interval = config["training"]["log_interval"]
     save_interval = config["training"]["save_interval"]
     learning_rate = config["training"]["learning_rate"]
