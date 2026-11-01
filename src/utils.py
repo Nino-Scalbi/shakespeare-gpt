@@ -1,4 +1,5 @@
 import os
+import random
 from pathlib import Path
 
 import numpy as np
@@ -27,6 +28,12 @@ def get_paths(cwd, run_id):
         "metrics": run_dir / "metrics.parquet"
     }
     return paths
+
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
 
 class MetricsLogger:

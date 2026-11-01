@@ -8,7 +8,12 @@ import yaml
 
 from src.dataset import decode, get_batch, split_data
 from src.model import GPT
-from src.utils import MetricsLogger, estimate_loss, get_paths, get_save_steps
+from src.utils import (MetricsLogger, 
+                       estimate_loss, 
+                       get_paths, 
+                       get_save_steps,
+                       set_seed
+                       )
 
 
 logging.basicConfig(
@@ -23,12 +28,14 @@ def parse_args():
     parser.add_argument("--run_id", type=str, default=None,
                         help="Run ID. Defaults to a timestamp (YYYYMMDD-HHMM)")
     parser.add_argument("--config", type=str, default="configs/default_config.yaml", 
-                        help="Path to the config file")
+                        help="Path to the config file"), 
+    parser.add_argument("--seed", type=int, default=42,
+                        help="Random seed for reproducibility")
     return parser.parse_args()
 
 
 
-def main(run_id, config_path):
+def main(run_id, config_path, seed):
     # Set device
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -51,6 +58,8 @@ def main(run_id, config_path):
     if paths["run"].exists():
         raise FileExistsError(f"Run '{run_id}' already exists at {paths['run']}")
 
+    # Set random seed for reproducibility
+    set_seed(seed)
 
     # import the data
     logger.info("Import Data")
@@ -143,4 +152,4 @@ def main(run_id, config_path):
 if __name__ == "__main__":
     args = parse_args()
     run_id = args.run_id or datetime.now().strftime("%Y%m%d-%H%M")
-    main(run_id=run_id, config_path=args.config)
+    main(run_id=run_id, config_path=args.config, seed=args.seed)
