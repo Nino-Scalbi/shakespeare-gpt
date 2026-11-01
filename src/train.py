@@ -28,8 +28,8 @@ def parse_args():
     parser.add_argument("--run_id", type=str, default=None,
                         help="Run ID. Defaults to a timestamp (YYYYMMDD-HHMM)")
     parser.add_argument("--config", type=str, default="configs/default_config.yaml", 
-                        help="Path to the config file"), 
-    parser.add_argument("--seed", type=int, default=42,
+                        help="Path to the config file") 
+    parser.add_argument("--seed", type=int, required=True,
                         help="Random seed for reproducibility")
     return parser.parse_args()
 
