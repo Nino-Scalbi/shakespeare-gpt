@@ -26,6 +26,7 @@ tmp/
 
 # Claude
 .claude/
+CLAUDE.md
 
 # pdf files
 *.pdf
