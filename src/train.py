@@ -6,11 +6,11 @@ from datetime import datetime
 import torch
 import yaml
 
-from src.dataset import decode, get_batch, split_data
+from src.dataset import decode, get_batch, make_eval_starts, split_data
 from src.model import GPT
-from src.utils import (MetricsLogger, 
-                       estimate_loss, 
-                       get_paths, 
+from src.utils import (MetricsLogger,
+                       evaluate,
+                       get_paths,
                        get_save_steps,
                        set_seed
                        )
@@ -49,7 +49,9 @@ def main(run_id, config_path, seed):
     log_interval = config["training"]["log_interval"]
     save_interval = config["training"]["save_interval"]
     learning_rate = config["training"]["learning_rate"]
-    eval_iters = config["training"]["eval_iters"]
+    eval_max_windows = config["training"]["eval_max_windows"]  # None = full pass
+    block_size = config["model"]["block_size"]
+    batch_size = config["model"]["batch_size"]
 
 
 
@@ -66,6 +68,12 @@ def main(run_id, config_path, seed):
     # import the data
     logger.info("Import Data")
     data = split_data(train_ratio=config["training"]["train_ratio"])
+    train_data, val_data = data
+
+    # Fixed evaluation windows. The train subset has as many windows as
+    # the validation set, evenly spaced over the whole train split.
+    val_starts = make_eval_starts(val_data, block_size, max_windows=eval_max_windows)
+    train_starts = make_eval_starts(train_data, block_size, max_windows=len(val_starts))
 
     logger.info("Create Model")
     model = GPT(config['model'])
@@ -120,18 +128,13 @@ def main(run_id, config_path, seed):
 
         # Log metrics
         if should_log:
-            losses = estimate_loss(
-                model=m,
-                data=data, 
-                config=config["model"],
-                device=device,
-                eval_iters=eval_iters
-                )
-            
+            train_loss = evaluate(m, train_data, train_starts, block_size, batch_size, device)
+            val_loss = evaluate(m, val_data, val_starts, block_size, batch_size, device)
+
             metrics_logger.log(
                 step=iter,
-                train_loss=losses["train"],
-                val_loss=losses["val"],
+                train_loss=train_loss,
+                val_loss=val_loss,
                 grad_norm=grad_norm,
                 learning_rate=optimizer.param_groups[0]["lr"],
             )
