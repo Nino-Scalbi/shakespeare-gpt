@@ -60,6 +60,8 @@ def main(run_id, config_path, seed):
 
     # Set random seed for reproducibility
     set_seed(seed)
+    # Separate generator for training batches
+    training_gen = torch.Generator().manual_seed(seed)
 
     # import the data
     logger.info("Import Data")
@@ -90,7 +92,8 @@ def main(run_id, config_path, seed):
         #sample a batch of the data
         xb, yb = get_batch(split='train', 
                         data = data,
-                        config = config["model"])
+                        config = config["model"],
+                        generator = training_gen)
         xb, yb = xb.to(device), yb.to(device)
 
         # evaluate the loss
@@ -117,7 +120,6 @@ def main(run_id, config_path, seed):
 
         # Log metrics
         if should_log:
-            # TODO: be careful when logging loss since it depends on get_batch. For our analysis we should use a random generator based on a fixed seed.
             losses = estimate_loss(
                 model=m,
                 data=data, 

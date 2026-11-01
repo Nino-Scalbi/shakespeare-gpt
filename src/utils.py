@@ -60,15 +60,22 @@ class MetricsLogger:
         os.replace(tmp_path, self.path)
 
 
+# Fixed seed for the evaluation batches. It is independent of the run seed so that
+# different runs are evaluated on the same data for reproducibility.
+EVAL_SEED = 1234
+
+
 @torch.no_grad()
 def estimate_loss(model, data, config, device, eval_iters):
     out = {}
     was_training = model.training
     model.eval()   # Turn the model into evaluation mode
+    # New generator such that each evaluation sees the same batches
+    eval_gen = torch.Generator().manual_seed(EVAL_SEED)
     for split in ['train', 'val']:
         losses = torch.zeros(eval_iters)
         for k in range(eval_iters):
-            X, Y = get_batch(split=split, data=data, config=config)
+            X, Y = get_batch(split=split, data=data, config=config, generator=eval_gen)
             X, Y = X.to(device), Y.to(device)
             logits, loss = model(X, Y)
             losses[k] = loss.item()
