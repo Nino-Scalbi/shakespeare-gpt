@@ -85,7 +85,7 @@ def main(run_id, config_path):
         xb, yb = xb.to(device), yb.to(device)
 
         # evaluate the loss
-        logits, loss = m(xb, yb)
+        _, loss = m(xb, yb)
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         
