@@ -1,7 +1,5 @@
 numpy==2.5.4
 PyYAML==6.0.3
 torch==2.15.0
-networkx==3.7
-sympy==1.14.0
 pandas==3.1.0
 pyarrow==26.0.0

@@ -30,3 +30,9 @@ CLAUDE.md
 
 # pdf files
 *.pdf
+
+# reports
+reports/
+
+# runs
+runs/
