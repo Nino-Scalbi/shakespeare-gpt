@@ -1,12 +1,14 @@
 import argparse
 import logging
-import yaml
 import os
-import torch
 from datetime import datetime
+
+import torch
+import yaml
+
+from src.dataset import decode, get_batch, split_data
 from src.model import GPT
-from src.dataset import get_batch, split_data, decode
-from src.utils import get_save_steps, get_paths, MetricsLogger, estimate_loss
+from src.utils import MetricsLogger, estimate_loss, get_paths, get_save_steps
 
 
 logging.basicConfig(
