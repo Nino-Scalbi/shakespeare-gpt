@@ -5,7 +5,6 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-from src.dataset import vocab_size
 
 
 class Head(nn.Module):
@@ -99,6 +98,7 @@ class GPT(nn.Module):
     def __init__(self, config):
         super().__init__()
         n_embd = config["n_embd"]
+        vocab_size = config["vocab_size"]
         self._block_size = config["block_size"]
         # each token directly reads off the logits fro the next token from a lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
