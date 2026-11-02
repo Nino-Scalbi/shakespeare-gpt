@@ -50,7 +50,6 @@ def main(run_id, config_path, seed):
     save_interval = config["training"]["save_interval"]
     learning_rate = config["training"]["learning_rate"]
     eval_max_windows = config["training"]["eval_max_windows"]  # None = full pass
-    analysis_max_windows = config["training"]["analysis_max_windows"]
     block_size = config["model"]["block_size"]
     batch_size = config["model"]["batch_size"]
 
@@ -75,16 +74,12 @@ def main(run_id, config_path, seed):
     # the validation set, evenly spaced over the whole train split.
     val_starts = make_eval_starts(val_data, block_size, max_windows=eval_max_windows)
     train_starts = make_eval_starts(train_data, block_size, max_windows=len(val_starts))
-    # Fixed analysis set which only depends on the data, block_size and analysis_max_windows
-    # for offline analysis
-    analysis_starts = make_eval_starts(val_data, block_size, max_windows=analysis_max_windows)
 
     def eval_metrics():
         """Eval-mode losses of the current weights on the fixed windows."""
         return dict(
             train_eval_loss=evaluate(m, train_data, train_starts, block_size, batch_size, device),
             val_loss=evaluate(m, val_data, val_starts, block_size, batch_size, device),
-            analysis_loss=evaluate(m, val_data, analysis_starts, block_size, batch_size, device),
         )
 
     logger.info("Create Model")
