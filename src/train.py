@@ -6,12 +6,19 @@ from datetime import datetime
 import torch
 import yaml
 
-from src.dataset import decode, get_batch, make_eval_starts, split_data
+from src.dataset import (DATA_PATH,
+                         build_vocab,
+                         get_batch,
+                         load_text,
+                         make_eval_starts,
+                         split_data
+                         )
 from src.model import GPT
 from src.utils import (MetricsLogger,
                        evaluate,
                        get_paths,
                        get_save_steps,
+                       save_run_info,
                        set_seed
                        )
 
@@ -67,8 +74,15 @@ def main(run_id, config_path, seed):
 
     # import the data
     logger.info("Import Data")
-    data = split_data(train_ratio=config["training"]["train_ratio"])
+    text = load_text(DATA_PATH)
+    vocab_size, encode, decode = build_vocab(text)
+    config["model"]["vocab_size"] = vocab_size  # so the saved config.yaml is enough to rebuild the model
+    data = split_data(torch.tensor(encode(text), dtype=torch.long),
+                      train_ratio=config["training"]["train_ratio"])
     train_data, val_data = data
+
+    # Resolved config and run metadata, written before training so interrupted runs have them too
+    save_run_info(paths["run"], config, seed, device, DATA_PATH)
 
     # Fixed evaluation windows. The train subset has as many windows as
     # the validation set, evenly spaced over the whole train split.
