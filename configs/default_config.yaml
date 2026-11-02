@@ -12,5 +12,6 @@ training:
   save_interval: 1000
   learning_rate: 3.0e-4
   eval_max_windows: null # Max number of fixed eval windows per split (null = full pass over the validation split)
+  analysis_max_windows: 64 # Size of the fixed analysis set (evenly spaced validation windows), used for offline geometry analysis
   train_ratio: 0.9
-  n_save_steps: 20 # Number of steps where weights are saved
+  n_save_steps: 20 # Number of snapshots after step 0 (geometric spacing, all distinct, last = max_iters)
