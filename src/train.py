@@ -92,8 +92,18 @@ def main(run_id, config_path, seed):
     metrics_logger = MetricsLogger(path=paths["metrics"])
 
     if 0 in save_steps:
+        # Save initial, untrained model state and evaluate metrics
         logger.info("Save initial, untrained weights")
         m.save_weights(step=0, output_dir=paths["weights"])
+        train_loss = evaluate(m, train_data, train_starts, block_size, batch_size, device)
+        val_loss = evaluate(m, val_data, val_starts, block_size, batch_size, device)
+        metrics_logger.log(
+                step=0,
+                train_loss=train_loss,
+                val_loss=val_loss,
+                grad_norm=None,
+                learning_rate=optimizer.param_groups[0]["lr"],
+            )
 
     for iter in range(1, max_iters + 1):
 
@@ -107,17 +117,7 @@ def main(run_id, config_path, seed):
         # evaluate the loss
         _, loss = m(xb, yb)
         optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        
-        # Gradient norm (only when needed)
-        should_log = iter % log_interval == 0 or iter in save_steps
-
-        if should_log:
-            grad_norm = torch.nn.utils.get_total_norm(
-                [p.grad for p in m.parameters() if p.grad is not None]
-            ).item()
-        
-        
+        loss.backward()    
         optimizer.step()
 
         # Save weights
@@ -125,6 +125,13 @@ def main(run_id, config_path, seed):
             logger.info(f"Save weights at step {iter}")
             m.save_weights(iter, paths["weights"])
 
+        # Gradient norm (only when needed)
+        should_log = iter % log_interval == 0 or iter in save_steps
+
+        if should_log:
+            grad_norm = torch.nn.utils.get_total_norm(
+                [p.grad for p in m.parameters() if p.grad is not None]
+            ).item()
 
         # Log metrics
         if should_log:
