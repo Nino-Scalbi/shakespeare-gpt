@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import yaml
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -168,3 +169,23 @@ class GPT(nn.Module):
         }, tmp_path)
 
         os.replace(tmp_path, path)
+
+    def load_weights(self, checkpoint_path):
+        checkpoint = torch.load(checkpoint_path, weights_only=True)
+        self.load_state_dict(checkpoint["model"])
+
+
+def load_snapshot(run_dir, step, device):
+    run_dir = Path(run_dir)
+    config_path = run_dir / "config.yaml"
+    weights_dir = run_dir / "weights"
+    
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+    
+    model = GPT(config['model'])
+    model.load_weights(weights_dir / f"step_{step:06d}.pt")
+    model = model.to(device)
+    model.eval()
+    
+    return model

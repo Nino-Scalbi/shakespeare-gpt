@@ -43,7 +43,7 @@ def get_paths(cwd, run_id):
 
 
 def _git(*args):
-    """Output of a git command, or None if git is unavailable (e.g. no .git on the server)."""
+    """Output of a git command, or None if git is unavailable."""
     try:
         return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
