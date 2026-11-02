@@ -50,6 +50,7 @@ def main(run_id, config_path, seed):
     save_interval = config["training"]["save_interval"]
     learning_rate = config["training"]["learning_rate"]
     eval_max_windows = config["training"]["eval_max_windows"]  # None = full pass
+    analysis_max_windows = config["training"]["analysis_max_windows"]
     block_size = config["model"]["block_size"]
     batch_size = config["model"]["batch_size"]
 
@@ -74,6 +75,17 @@ def main(run_id, config_path, seed):
     # the validation set, evenly spaced over the whole train split.
     val_starts = make_eval_starts(val_data, block_size, max_windows=eval_max_windows)
     train_starts = make_eval_starts(train_data, block_size, max_windows=len(val_starts))
+    # Fixed analysis set which only depends on the data, block_size and analysis_max_windows
+    # for offline analysis
+    analysis_starts = make_eval_starts(val_data, block_size, max_windows=analysis_max_windows)
+
+    def eval_metrics():
+        """Eval-mode losses of the current weights on the fixed windows."""
+        return dict(
+            train_eval_loss=evaluate(m, train_data, train_starts, block_size, batch_size, device),
+            val_loss=evaluate(m, val_data, val_starts, block_size, batch_size, device),
+            analysis_loss=evaluate(m, val_data, analysis_starts, block_size, batch_size, device),
+        )
 
     logger.info("Create Model")
     model = GPT(config['model'])
@@ -95,15 +107,14 @@ def main(run_id, config_path, seed):
         # Save initial, untrained model state and evaluate metrics
         logger.info("Save initial, untrained weights")
         m.save_weights(step=0, output_dir=paths["weights"])
-        train_loss = evaluate(m, train_data, train_starts, block_size, batch_size, device)
-        val_loss = evaluate(m, val_data, val_starts, block_size, batch_size, device)
+        # batch_loss and grad_norm are undefined at step 0: no training batch has been seen yet
         metrics_logger.log(
-                step=0,
-                train_loss=train_loss,
-                val_loss=val_loss,
-                grad_norm=None,
-                learning_rate=optimizer.param_groups[0]["lr"],
-            )
+            step=0,
+            batch_loss=None,
+            grad_norm=None,
+            **eval_metrics(),
+            learning_rate=optimizer.param_groups[0]["lr"],
+        )
 
     for iter in range(1, max_iters + 1):
 
@@ -117,7 +128,16 @@ def main(run_id, config_path, seed):
         # evaluate the loss
         _, loss = m(xb, yb)
         optimizer.zero_grad(set_to_none=True)
-        loss.backward()    
+        loss.backward()
+
+        # compute batch_loss and grad_norm
+        should_log = iter % log_interval == 0 or iter in save_steps
+        if should_log:
+            batch_loss = loss.item()
+            grad_norm = torch.nn.utils.get_total_norm(
+                [p.grad for p in m.parameters() if p.grad is not None]
+            ).item()
+
         optimizer.step()
 
         # Save weights
@@ -125,24 +145,13 @@ def main(run_id, config_path, seed):
             logger.info(f"Save weights at step {iter}")
             m.save_weights(iter, paths["weights"])
 
-        # Gradient norm (only when needed)
-        should_log = iter % log_interval == 0 or iter in save_steps
-
+        # Log metrics. The eval-mode losses are measured on the weights AFTER the update (step iter).
         if should_log:
-            grad_norm = torch.nn.utils.get_total_norm(
-                [p.grad for p in m.parameters() if p.grad is not None]
-            ).item()
-
-        # Log metrics
-        if should_log:
-            train_loss = evaluate(m, train_data, train_starts, block_size, batch_size, device)
-            val_loss = evaluate(m, val_data, val_starts, block_size, batch_size, device)
-
             metrics_logger.log(
                 step=iter,
-                train_loss=train_loss,
-                val_loss=val_loss,
+                batch_loss=batch_loss,
                 grad_norm=grad_norm,
+                **eval_metrics(),
                 learning_rate=optimizer.param_groups[0]["lr"],
             )
 
