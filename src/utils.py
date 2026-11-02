@@ -12,12 +12,18 @@ from src.dataset import (get_batch,
 
 
 def get_save_steps(max_steps, n_steps):
-    save_steps = set(
-        np.geomspace(1, max_steps, num=n_steps).astype(int)
-    )
-    save_steps.update({0, max_steps})
+    """Geometrically spaced snapshot steps: step 0 plus exactly n_steps distinct steps in [1, max_steps].
+    The last step is always max_steps.
+    """
+    if n_steps > max_steps:
+        raise ValueError(f"n_steps ({n_steps}) cannot exceed max_steps ({max_steps})")
+    save_steps = {0}
+    prev = 0
+    for value in np.geomspace(1, max_steps, num=n_steps):
+        step = max(int(round(value)), prev + 1)
+        save_steps.add(step)
+        prev = step
     return save_steps
-
 
 
 def get_paths(cwd, run_id):
