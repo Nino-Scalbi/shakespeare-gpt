@@ -63,9 +63,6 @@ def get_windows(data, starts, block_size):
     y = torch.stack([data[i+1:i+block_size+1] for i in starts])
     return x, y
 
-
-
-
 # data loading
 def get_batch(split, data, config, generator=None):
     train_data, val_data = data
@@ -75,3 +72,20 @@ def get_batch(split, data, config, generator=None):
     ix = torch.randint(len(data) - block_size, (batch_size, ), generator=generator)
     x, y = get_windows(data, ix, block_size)
     return x, y
+
+
+# data preparation
+def prepare_data(config):
+    """Splits, fixed eval windows and vocab, built from the config.
+
+    train.py and scripts/check_reload.py both use this, so they always see the same windows.
+    The train eval subset has as many windows as the validation set, evenly spaced over the train split.
+    """
+    text = load_text(DATA_PATH)
+    vocab_size, encode, decode = build_vocab(text)
+    train_data, val_data = split_data(torch.tensor(encode(text), dtype=torch.long),
+                                      train_ratio=config["training"]["train_ratio"])
+    block_size = config["model"]["block_size"]
+    val_starts = make_eval_starts(val_data, block_size, max_windows=config["training"]["eval_max_windows"])
+    train_starts = make_eval_starts(train_data, block_size, max_windows=len(val_starts))
+    return train_data, val_data, train_starts, val_starts, vocab_size, decode

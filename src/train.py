@@ -7,11 +7,8 @@ import torch
 import yaml
 
 from src.dataset import (DATA_PATH,
-                         build_vocab,
                          get_batch,
-                         load_text,
-                         make_eval_starts,
-                         split_data
+                         prepare_data
                          )
 from src.model import GPT
 from src.utils import (MetricsLogger,
@@ -56,7 +53,6 @@ def main(run_id, config_path, seed):
     log_interval = config["training"]["log_interval"]
     save_interval = config["training"]["save_interval"]
     learning_rate = config["training"]["learning_rate"]
-    eval_max_windows = config["training"]["eval_max_windows"]  # None = full pass
     block_size = config["model"]["block_size"]
     batch_size = config["model"]["batch_size"]
 
@@ -74,20 +70,11 @@ def main(run_id, config_path, seed):
 
     # import the data
     logger.info("Import Data")
-    text = load_text(DATA_PATH)
-    vocab_size, encode, decode = build_vocab(text)
+    train_data, val_data, train_starts, val_starts, vocab_size, decode = prepare_data(config)
     config["model"]["vocab_size"] = vocab_size  # so the saved config.yaml is enough to rebuild the model
-    data = split_data(torch.tensor(encode(text), dtype=torch.long),
-                      train_ratio=config["training"]["train_ratio"])
-    train_data, val_data = data
 
     # Resolved config and run metadata, written before training so interrupted runs have them too
     save_run_info(paths["run"], config, seed, device, DATA_PATH)
-
-    # Fixed evaluation windows. The train subset has as many windows as
-    # the validation set, evenly spaced over the whole train split.
-    val_starts = make_eval_starts(val_data, block_size, max_windows=eval_max_windows)
-    train_starts = make_eval_starts(train_data, block_size, max_windows=len(val_starts))
 
     def eval_metrics():
         """Eval-mode losses of the current weights on the fixed windows."""
@@ -129,7 +116,7 @@ def main(run_id, config_path, seed):
 
         #sample a batch of the data
         xb, yb = get_batch(split='train', 
-                        data = data,
+                        data = (train_data, val_data),
                         config = config["model"],
                         generator = training_gen)
         xb, yb = xb.to(device), yb.to(device)
