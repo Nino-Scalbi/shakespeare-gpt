@@ -1,10 +1,14 @@
+import hashlib
+import json
 import os
 import random
+import subprocess
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import torch
+import yaml
 
 from src.dataset import (get_batch,
                          get_windows
@@ -36,6 +40,36 @@ def get_paths(cwd, run_id):
         "metrics": run_dir / "metrics.parquet"
     }
     return paths
+
+
+def _git(*args):
+    """Output of a git command, or None if git is unavailable (e.g. no .git on the server)."""
+    try:
+        return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def save_run_info(run_dir, config, seed, device, data_path):
+    """Write the resolved config.yaml and a small metadata.json into run_dir."""
+    run_dir = Path(run_dir)
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    with open(run_dir / "config.yaml", "w") as f:
+        yaml.safe_dump(config, f, sort_keys=False)
+
+    commit = _git("rev-parse", "HEAD")
+    status = _git("status", "--porcelain")
+    metadata = {
+        "seed": seed,
+        "git_commit": commit,
+        "git_dirty": None if status is None else status != "",
+        "torch_version": torch.__version__,
+        "device": device,
+        "data_sha256": hashlib.sha256(Path(data_path).read_bytes()).hexdigest(),
+    }
+    with open(run_dir / "metadata.json", "w") as f:
+        json.dump(metadata, f, indent=2)
 
 
 def set_seed(seed):
