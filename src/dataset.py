@@ -1,24 +1,27 @@
 import torch
 
 
-# Load the data
-with open('data/input.txt', 'r', encoding='utf-8') as f:
-    text = f.read()
-
-chars = sorted(list(set(text)))
-vocab_size = len(chars)
-
-# create mapping from characters to integers
-stoi = { ch:i for i,ch in enumerate(chars) }
-itos = { i:ch for i,ch in enumerate(chars) }
-encode = lambda s: [stoi[c] for c in s] # encoder: take a string, output a list of integers
-decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integers, output a string
+DATA_PATH = "data/input.txt"
 
 
+def load_text(path=DATA_PATH):
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
 
-#split data into train and validation sets
-def split_data(train_ratio=0.9):
-    data = torch.tensor(encode(text), dtype=torch.long)
+
+def build_vocab(text):
+    """Character vocabulary of text. Returns (vocab_size, encode, decode)."""
+    chars = sorted(set(text))
+    stoi = {ch: i for i, ch in enumerate(chars)}
+    itos = {i: ch for i, ch in enumerate(chars)}
+    encode = lambda s: [stoi[c] for c in s]  # string -> list of integers
+    decode = lambda l: "".join(itos[i] for i in l)  # list of integers -> string
+    return len(chars), encode, decode
+
+
+# split data into train and validation sets
+def split_data(data, train_ratio=0.9):
+    """Split a 1-D tensor of token ids into (train, val) by ratio."""
     n = int(train_ratio*len(data))
     train_data = data[:n]
     val_data = data[n:]
