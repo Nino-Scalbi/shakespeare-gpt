@@ -88,7 +88,10 @@ def main(run_id, config_path, seed):
     m = model.to(device)
 
     # create a PyTorch optimizer
-    optimizer = torch.optim.AdamW(m.parameters(), lr=learning_rate)
+    optimizer = torch.optim.AdamW(params=m.parameters(), 
+                                  lr=learning_rate, 
+                                  weight_decay=config["training"]["weight_decay"]
+                                  )
 
 
     # Training loop

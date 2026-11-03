@@ -14,3 +14,4 @@ training:
   eval_max_windows: null # Max number of fixed eval windows per split (null = full pass over the validation split)
   train_ratio: 0.9
   n_save_steps: 20 # Number of snapshots after step 0 (geometric spacing, all distinct, last = max_iters)
+  weight_decay: 0.01

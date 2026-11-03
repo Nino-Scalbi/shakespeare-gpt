@@ -16,3 +16,4 @@ training:
   eval_max_windows: 8 # Max number of fixed eval windows per split (fast smoke test)
   train_ratio: 0.9
   n_save_steps: 6 # Number of steps where weights are saved (geometric spacing, plus step 0)
+  weight_decay: 0.01
