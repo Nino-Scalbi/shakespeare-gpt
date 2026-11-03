@@ -60,12 +60,12 @@ class MultiHeadAttention(nn.Module):
 class FeedForward(nn.Module):
     """A simple linear layer followed by a ReLu non-linearity"""
 
-    def __init__(self, n_embd, n_heads, dropout):
+    def __init__(self, n_embd, dropout):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(n_embd, n_heads * n_embd), # The 4 * ... is due to the paper (Attention is all you need)
+            nn.Linear(n_embd, 4 * n_embd), # The 4 * ... is due to the paper (Attention is all you need)
             nn.ReLU(),
-            nn.Linear(n_heads * n_embd, n_embd), # Projection Layer down to the residual pathway
+            nn.Linear(4 * n_embd, n_embd), # Projection Layer down to the residual pathway
             nn.Dropout(dropout),
         )
 
@@ -83,7 +83,7 @@ class Block(nn.Module):
         n_heads = config["n_heads"]
         head_size = n_embd // n_heads  # creating mutltiple parallel channels of self-attention instead of a single one of n_embd attention
         self.sa = MultiHeadAttention(config=config, head_size=head_size)
-        self.ffwd = FeedForward(n_embd=n_embd, n_heads=n_heads, dropout=config["dropout"])
+        self.ffwd = FeedForward(n_embd=n_embd, dropout=config["dropout"])
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
 
