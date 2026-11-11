@@ -73,7 +73,7 @@ def main(run_id, config_path, seed):
     train_data, val_data, train_starts, val_starts, vocab_size, decode = prepare_data(config)
     config["model"]["vocab_size"] = vocab_size  # so the saved config.yaml is enough to rebuild the model
 
-    # Resolved config and run metadata, written before training so interrupted runs have them too
+    # Resolved config and run metadata
     save_run_info(paths["run"], config, seed, device, DATA_PATH)
 
     def eval_metrics():
