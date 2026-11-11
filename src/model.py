@@ -105,7 +105,7 @@ class GPT(nn.Module):
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         # Embedding also the possible position (block_size)
         self.position_embedding_table = nn.Embedding(self._block_size, n_embd)
-        # 4 Transformer Blocks
+        # n_layer Transformer Blocks in sequence
         self.blocks = nn.Sequential(*[Block(config) for _ in range(config["n_layer"])])
         self.ln_f = nn.LayerNorm(n_embd)
         self.lm_head = nn.Linear(n_embd, vocab_size)
